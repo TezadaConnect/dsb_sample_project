@@ -1,12 +1,14 @@
 import 'dart:async';
-//import 'dart:html';
-import 'package:connectivity/connectivity.dart';
-import 'package:data_connection_checker_tv/data_connection_checker.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:internet_connection_checker/internet_connection_checker.dart';
 
 final wifiConnectivityServiceProvider =
     StreamProvider.autoDispose<ConnectivityState>((ref) {
-  return WifiConnectivityService().connectivityStreamController.stream;
+  var connectivityStream =
+      WifiConnectivityService().connectivityStreamController.stream;
+  ref.onDispose(() => connectivityStream);
+  return connectivityStream;
 });
 
 enum ConnectivityState { connected, disconnected }
@@ -21,6 +23,7 @@ class WifiConnectivityService {
     Connectivity()
         .onConnectivityChanged
         .listen((ConnectivityResult? status) async {
+      print("Result : $status");
       connectivityStreamController.add(
           (await _getConnectivityState(status ?? ConnectivityResult.none)));
     });
@@ -31,7 +34,7 @@ class WifiConnectivityService {
       ConnectivityResult? status) async {
     try {
       //Check actual data connection
-      bool isConnected = await DataConnectionChecker().hasConnection;
+      bool isConnected = await InternetConnectionChecker().hasConnection;
 
       switch (status) {
         case ConnectivityResult.mobile:
@@ -47,7 +50,7 @@ class WifiConnectivityService {
             return ConnectivityState.disconnected;
           }
         case ConnectivityResult.none:
-          return ConnectivityState.connected;
+          return ConnectivityState.disconnected;
         default:
           return ConnectivityState.disconnected;
       }
